@@ -4,9 +4,13 @@ import json
 from dotenv import load_dotenv
 from math import radians, cos, sin, asin, sqrt
 from datetime import datetime
+from flask import Flask, jsonify, request
+from flask_restful import Resource, Api
+from geopy.geocoders import Nominatim
 
 load_dotenv()
 
+# Data Base
 mydb = mysql.connector.connect(
   host=os.getenv('LOCALHOST'),
   user=os.getenv('DB_USER'),
@@ -16,6 +20,47 @@ mydb = mysql.connector.connect(
 )
 
 mycursor = mydb.cursor()
+
+# Rest API for Alexa skill
+app = Flask(__name__)
+api = Api(app)
+
+# GeoPy Config
+geolocator = Nominatim(user_agent="honda_app")
+
+
+# API for getting nearest parking location
+@app.route("/park/<location>", methods=["GET"])
+def setName(location):
+    if request.method=='GET':
+      lat, longt = getLatLong(location)
+      mycursor.execute("SELECT Latitude, Longitude, LocationID from LocationTable where score > 20")
+      shortest = 0
+      locid = 0
+      shortestLong = 0
+      shortestLat = 0
+      for (Latitude, Longitude, LocationID) in mycursor:
+        # calculate shortest distance
+        dist = haversine(longt, lat,Longitude, Latitude)
+        if dist < shortest:
+          shortest = dist
+          locid = LocationID
+          shortestLat = Latitude
+          shortestLong = Longitude
+        results = requests.get("https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=" + shortestLat + "," + shortestLong + "&radius=150&key=" + os.getenv('GOOGLE_MAP_API_KEY'))
+        landmarks = results['results'] 
+      return jsonify(str("The best possible parking spot is " + shortest + " meters near " + landmarks[0]['name']))
+
+# API for getting marking the current location as parking spot
+@app.route("/mark-parking-spot/<lat>,<longt>", methods=["GET"])
+def markParking(lat, longt):
+    if request.method=='GET':
+      return jsonify(str("Sucessfully marked your current location as a parking spot"))
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
 def generateScore(data, locationid):
   score = 0
   # Check if car is in Parking Brake is On
@@ -52,16 +97,13 @@ def insertIntoDB(data):
     mycursor.execute("SELECT LAST_INSERT_ID();")
     locationid = mycursor.fetchone()[0]
     mycursor.execute("INSERT INTO CarTable Values ( " + str(locationid) +", "+ str(data['CarID']) + ",\""+ data['ParkBrake'] + '\",\"' + data['ParkSensor'] + '\",\"' + data['ParkMode']+"\","+ str(data['EngineStart'])+")")
-    # mydb.commit()
+    mydb.commit()
     generateScore(data, locationid)
 
 def getAPIData():
   # Ideally this should be api from the car
     car_data =  '{ "latitude": 12.911913, "longitude":77.649561, "ParkBrake":"ON", "ParkSensor": "ON","ParkMode": "OFF", "CarID": 53248, "EngineStart": false}'
     return json.loads(car_data)
-
-def alexaResponse(latitude, longitude):
-  return "Hello"
 
 def haversine(lon1, lat1, lon2, lat2):
   """
@@ -79,6 +121,12 @@ def haversine(lon1, lat1, lon2, lat2):
   km = 6371* c
   return km
     
+def getLatLong(locationName):
+  # Can you current Location from CarData
+  location = geolocator.geocode(locationName + "India")
+  return location.latitude, location.longitude
+
 def markPlaceAsParkable(latitude, longitude):
-  return 0
-insertIntoDB(getAPIData())
+  mycursor.execute("Update LocationTable Set Score = 500 where  CAST(Latitude AS DECIMAL) = CAST("+ str(latitude)+" AS DECIMAL) and CAST(Longitude AS DECIMAL) = CAST("+ str(longitude)+" AS DECIMAL)")
+  mydb.commit()
+# insertIntoDB(getAPIData())
