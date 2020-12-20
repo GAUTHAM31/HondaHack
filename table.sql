@@ -13,6 +13,5 @@ CREATE TABLE CarTable (
     ParkSensor  VARCHAR(3),
     ParkMode  VARCHAR(3),
     EngineStart BOOLEAN DEFAULT false,
-    PRIMARY KEY (CarID),
     FOREIGN KEY (LocationID) REFERENCES LocationTable(LocationID)
 );
