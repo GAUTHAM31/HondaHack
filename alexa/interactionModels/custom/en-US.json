@@ -1,0 +1,53 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "honda parking",
+      "intents": [
+        {
+          "name": "SearchIntent",
+          "slots": [
+            {
+              "name": "Location",
+              "type": "AMAZON.AdministrativeArea"
+            }
+          ],
+          "samples": [
+            "show me nearby parking locations in {Location}",
+            "show car parking areas in {Location}",
+            "find me car parking near {Location}"
+          ]
+        },
+        {
+          "name": "AMAZON.RepeatIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.NavigateHomeIntent",
+          "samples": []
+        },
+        {
+          "name": "MarkParkingSpotIntent",
+          "slots": [],
+          "samples": [
+            "Mark this location as a parking spot",
+            "Mark my current location as a parking spot"
+          ]
+        }
+      ],
+      "types": []
+    }
+  },
+  "version": "15"
+}
